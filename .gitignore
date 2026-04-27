@@ -1,0 +1,66 @@
+.env
+# --- OS ---
+.DS_Store
+Thumbs.db
+
+# --- Node / Expo / React Native ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+expo-debug.log
+.expo/
+.expo-shared/
+.expo/web-build/
+dist/
+build/
+android/
+ios/
+
+# Metro / bundler cache
+.expo/
+.expo-shared/
+.expo/web-build/
+.expo/packager-info.json
+.expo/settings.json
+.expo/metro-cache/
+.expo/cache/
+
+# --- Environment / Secrets ---
+.env
+.env.*
+.env.local
+.env.development
+.env.production
+.env.test
+*.key
+*.pem
+
+# --- Python / Claude / AI tooling ---
+.venv/
+venv/
+.claude/
+.claude-cache/
+__pycache__/
+
+# --- VS Code ---
+.vscode/
+.history/
+
+# --- Logs ---
+*.log
+logs/
+*.pid
+*.seed
+*.pid.lock
+
+# --- OS / Editor Trash ---
+*.swp
+*.swo
+*.tmp
+*.temp
+
+# --- Misc modern tooling ---
+.cache/
+.tmp/
+coverage/
