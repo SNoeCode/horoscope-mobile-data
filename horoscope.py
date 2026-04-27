@@ -1,6 +1,6 @@
 """
-Groq Daily Horoscope Generator
-Generates daily horoscopes for all zodiac signs using the Groq free API
+Groq Horoscope Generator
+Generates daily, monthly, and yearly horoscopes for all zodiac signs using the Groq API
 """
 
 import requests
@@ -45,7 +45,6 @@ class HoroscopeGenerator:
         'social connections and community'
     ]
 
-    # All pools have exactly 12 entries — one unique assignment per sign, zero overlap
     FOCUS_AREAS = [
         'romantic love', 'career advancement', 'personal finances',
         'physical health', 'personal growth', 'friendship and social life',
@@ -117,11 +116,6 @@ class HoroscopeGenerator:
         return pool[index]
 
     def _daily_assignments(self, date_str):
-        """
-        Shuffle all 5 pools by date. Every sign gets a completely unique
-        combination of focus, style, format, mood, and opener.
-        No two signs share any assignment on the same day.
-        """
         rng = random.Random(date_str)
         pools = [
             self.FOCUS_AREAS[:],
@@ -134,11 +128,30 @@ class HoroscopeGenerator:
         for pool in pools:
             rng.shuffle(pool)
             shuffled.append({sign: pool[i] for i, sign in enumerate(self.SIGNS)})
-        return shuffled  # [focuses, styles, formats, moods, openers]
+        return shuffled
 
-    def generate_horoscope(self, sign):
+    def _call_api(self, system_prompt, user_prompt, max_tokens=300):
+        payload = {
+            'model': self.MODEL,
+            'messages': [
+                {'role': 'system', 'content': system_prompt},
+                {'role': 'user', 'content': user_prompt}
+            ],
+            'max_tokens': max_tokens,
+            'temperature': 0.95
+        }
+        try:
+            response = requests.post(self.API_URL, headers=self.headers, json=payload, timeout=30)
+            response.raise_for_status()
+            text = response.json()['choices'][0]['message']['content'].strip()
+            time.sleep(1)
+            return text
+        except requests.RequestException as e:
+            print("API error: " + str(e))
+            return None
+
+    def generate_daily(self, sign):
         if sign not in self.SIGNS:
-            print("Invalid sign: " + sign)
             return None
 
         today = datetime.now().strftime('%B %d, %Y')
@@ -146,65 +159,107 @@ class HoroscopeGenerator:
         theme = self._pick(self.THEMES, today + sign)
 
         focuses, styles, formats, moods, openers = self._daily_assignments(today)
-        focus  = focuses[sign]
-        style  = styles[sign]
-        fmt    = formats[sign]
-        mood   = moods[sign]
-        opener = openers[sign]
 
-        payload = {
-            'model': self.MODEL,
-            'messages': [
-                {
-                    'role': 'system',
-                    'content': (
-                        'You are a master astrologer who writes horoscopes with radical variety. '
-                        'Each horoscope must feel like it was written by a completely different person '
-                        'in a completely different mood — different rhythm, different vocabulary, '
-                        'different emotional weight, different sentence length. '
-                        'You never default to a template. Every sentence earns its place. '
-                        'Absolutely forbidden: "inner wisdom", "inner voice", "the universe", '
-                        '"tap into", "cosmic", "journey", "manifest", "energy", '
-                        '"as you", "today is a", "as a [sign]".'
-                    )
-                },
-                {
-                    'role': 'user',
-                    'content': (
-                        f'Write a horoscope for {sign.capitalize()} — {today}.\n\n'
-                        f'SIGN: {traits}\n'
-                        f'THEME: {theme}\n'
-                        f'FOCUS: {focus} only — do not drift into any other life area\n'
-                        f'MOOD: {mood}\n'
-                        f'WRITING STYLE: {style}\n'
-                        f'STRUCTURE: {fmt}\n'
-                        f'OPENING IDEA (rewrite in your own words, do not quote): "{opener}"\n\n'
-                        f'OUTPUT RULES:\n'
-                        f'- 3 to 4 sentences only\n'
-                        f'- Name one specific, concrete action or decision\n'
-                        f'- The writing style must be obvious from the first word\n'
-                        f'- Return only the horoscope paragraph, nothing else'
-                    )
-                }
-            ],
-            'max_tokens': 250,
-            'temperature': 0.98
+        system = (
+            'You are a master astrologer who writes horoscopes with radical variety. '
+            'Each horoscope must feel like it was written by a completely different person '
+            'in a completely different mood. You never default to a template. '
+            'Absolutely forbidden: "inner wisdom", "inner voice", "the universe", '
+            '"tap into", "cosmic", "journey", "manifest", "energy", "as you", "today is a", "as a [sign]".'
+        )
+
+        user = (
+            f'Write a horoscope for {sign.capitalize()} — {today}.\n\n'
+            f'SIGN: {traits}\n'
+            f'THEME: {theme}\n'
+            f'FOCUS: {focuses[sign]} only\n'
+            f'MOOD: {moods[sign]}\n'
+            f'WRITING STYLE: {styles[sign]}\n'
+            f'STRUCTURE: {formats[sign]}\n'
+            f'OPENING IDEA (rewrite in your own words): "{openers[sign]}"\n\n'
+            f'OUTPUT RULES:\n'
+            f'- 3 to 4 sentences only\n'
+            f'- Name one specific, concrete action or decision\n'
+            f'- Return only the horoscope paragraph, nothing else'
+        )
+
+        text = self._call_api(system, user, max_tokens=250)
+        if not text:
+            return None
+
+        return {
+            'summary': text,
+            'date': today,
+            'generated_at': datetime.now().isoformat()
         }
 
-        try:
-            response = requests.post(self.API_URL, headers=self.headers, json=payload, timeout=30)
-            response.raise_for_status()
-            result = response.json()
-            text = result['choices'][0]['message']['content'].strip()
-
-            time.sleep(1)
-
-            return {
-                'date': today,
-                'summary': text,
-                'scraped_at': datetime.now().isoformat()
-            }
-
-        except requests.RequestException as e:
-            print("Error generating horoscope for " + sign + ": " + str(e))
+    def generate_monthly(self, sign):
+        if sign not in self.SIGNS:
             return None
+
+        now = datetime.now()
+        month_year = now.strftime('%B %Y')
+        traits = self.SIGN_TRAITS.get(sign, '')
+
+        system = (
+            'You are an experienced astrologer writing monthly forecasts. '
+            'Write with depth and specificity. Cover themes for love, career, and personal growth. '
+            'Avoid vague generalities — name specific planetary influences and what they mean practically. '
+            'Forbidden words: "universe", "manifest", "energy", "journey", "tap into".'
+        )
+
+        user = (
+            f'Write a monthly horoscope for {sign.capitalize()} for {month_year}.\n\n'
+            f'SIGN TRAITS: {traits}\n\n'
+            f'OUTPUT RULES:\n'
+            f'- 4 to 6 sentences\n'
+            f'- Cover at least two life areas (love, career, finances, health, or personal growth)\n'
+            f'- Name one key opportunity and one challenge for the month\n'
+            f'- Return only the forecast paragraph, nothing else'
+        )
+
+        text = self._call_api(system, user, max_tokens=400)
+        if not text:
+            return None
+
+        return {
+            'summary': text,
+            'period': month_year,
+            'generated_at': datetime.now().isoformat()
+        }
+
+    def generate_yearly(self, sign):
+        if sign not in self.SIGNS:
+            return None
+
+        year = datetime.now().strftime('%Y')
+        traits = self.SIGN_TRAITS.get(sign, '')
+
+        system = (
+            'You are a senior astrologer writing annual forecasts. '
+            'Write with authority and sweep — this is a year-long view. '
+            'Identify major themes, turning points, and the overall arc of the year. '
+            'Be specific about timing where possible (early year, mid-year, late year). '
+            'Forbidden words: "universe", "manifest", "energy", "journey", "tap into".'
+        )
+
+        user = (
+            f'Write a yearly horoscope overview for {sign.capitalize()} for {year}.\n\n'
+            f'SIGN TRAITS: {traits}\n\n'
+            f'OUTPUT RULES:\n'
+            f'- 5 to 7 sentences\n'
+            f'- Cover the arc of the full year with early/mid/late year themes\n'
+            f'- Address love, career, and personal evolution\n'
+            f'- End with an empowering statement about what this year means for the sign\n'
+            f'- Return only the overview paragraph, nothing else'
+        )
+
+        text = self._call_api(system, user, max_tokens=500)
+        if not text:
+            return None
+
+        return {
+            'overview': text,
+            'year': year,
+            'generated_at': datetime.now().isoformat()
+        }
