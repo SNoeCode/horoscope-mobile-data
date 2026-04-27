@@ -13,9 +13,7 @@ expo-debug.log
 .expo-shared/
 .expo/web-build/
 dist/
-build/
-android/
-ios/
+
 
 # Metro / bundler cache
 .expo/

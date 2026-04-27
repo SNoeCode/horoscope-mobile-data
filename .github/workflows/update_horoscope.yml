@@ -27,9 +27,12 @@ jobs:
         run: python update_horoscope.py
 
       - name: Commit and push updated JSON
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:${GH_PAT}@github.com/SNoeCode/horoscope-mobile-data.git
           git add horoscope.json horoscope_yesterday.json
           git diff --staged --quiet || git commit -m "chore: daily horoscopes $(date -u +%Y-%m-%d)"
           git push
