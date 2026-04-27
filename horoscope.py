@@ -192,36 +192,40 @@ class HoroscopeGenerator:
             'date': today,
             'generated_at': datetime.now().isoformat()
         }
-
     def generate_monthly(self, sign):
         if sign not in self.SIGNS:
             return None
-
+    
         now = datetime.now()
         month_year = now.strftime('%B %Y')
         traits = self.SIGN_TRAITS.get(sign, '')
-
+    
         system = (
-            'You are an experienced astrologer writing monthly forecasts. '
-            'Write with depth and specificity. Cover themes for love, career, and personal growth. '
-            'Avoid vague generalities — name specific planetary influences and what they mean practically. '
-            'Forbidden words: "universe", "manifest", "energy", "journey", "tap into".'
+            'You are an astrologer writing monthly forecasts, and your tone should vary widely. '
+            'Depending on what feels most fitting, you may write in a poetic, blunt, cinematic, analytical, '
+            'warm, symbolic, conversational, or sharply direct voice. '
+            'Focus on short-term (30-day) developments with concrete themes in love, career, finances, health, '
+            'or personal growth. '
+            'Avoid vague spiritual language. Forbidden words: "universe", "manifest", "energy", "journey", "tap into".'
         )
-
+    
         user = (
             f'Write a monthly horoscope for {sign.capitalize()} for {month_year}.\n\n'
             f'SIGN TRAITS: {traits}\n\n'
+            f'STYLE GUIDANCE:\n'
+            f'- Choose a distinct tone (e.g., warm, sharp, poetic, clinical, dramatic, reflective, symbolic, or witty)\n'
+            f'- Choose a structure that fits the tone (e.g., open with a tension, start with a question, begin with an early-month shift, or lead with the month\'s biggest opportunity)\n\n'
             f'OUTPUT RULES:\n'
-            f'- 4 to 6 sentences\n'
+            f'- 6 to 8 sentences\n'
             f'- Cover at least two life areas (love, career, finances, health, or personal growth)\n'
             f'- Name one key opportunity and one challenge for the month\n'
             f'- Return only the forecast paragraph, nothing else'
         )
-
+    
         text = self._call_api(system, user, max_tokens=400)
         if not text:
             return None
-
+    
         return {
             'summary': text,
             'period': month_year,
@@ -231,35 +235,48 @@ class HoroscopeGenerator:
     def generate_yearly(self, sign):
         if sign not in self.SIGNS:
             return None
-
+    
         year = datetime.now().strftime('%Y')
         traits = self.SIGN_TRAITS.get(sign, '')
-
+    
         system = (
-            'You are a senior astrologer writing annual forecasts. '
-            'Write with authority and sweep — this is a year-long view. '
-            'Identify major themes, turning points, and the overall arc of the year. '
-            'Be specific about timing where possible (early year, mid-year, late year). '
-            'Forbidden words: "universe", "manifest", "energy", "journey", "tap into".'
+            'You are a senior astrologer writing annual forecasts, and your tone should vary widely. '
+            'Depending on what feels most fitting, you may write in a mythic, cinematic, analytical, reflective, '
+            'symbolic, commanding, warm, or sharply direct voice. '
+            'Break the year into four seasonal phases — Winter, Spring, Summer, and Fall — and describe how each season '
+            'shifts the emotional, relational, and practical themes for the sign. '
+            'For this forecast, randomly select 3–4 themes from the following list and weave them naturally across the seasons: '
+            'communication and clarity; rest and reflection; bold action and risk-taking; finances and practical decisions; '
+            'relationships and emotional depth; creativity and self-expression; ambition and career focus; healing and letting go; '
+            'new beginnings and fresh starts; patience and steady progress; intuition and inner wisdom; social connections and community. '
+            'Also randomly select 3–4 focus areas from the following list and incorporate them meaningfully: '
+            'romantic love; career advancement; personal finances; physical health; personal growth; friendship and social life; '
+            'family dynamics; creative pursuits; mental health and stress; long-term goals; daily habits and routines; self-confidence. '
+            'Avoid vague spiritual language. Forbidden words: "universe", "manifest", "energy", "journey", "tap into".'
         )
-
+    
         user = (
             f'Write a yearly horoscope overview for {sign.capitalize()} for {year}.\n\n'
             f'SIGN TRAITS: {traits}\n\n'
+            f'STYLE GUIDANCE:\n'
+            f'- Choose a tone that feels expansive and long-range (e.g., mythic, cinematic, analytical, reflective, symbolic, or motivational)\n'
+            f'- Use a structure based on the four seasons: Winter (early year), Spring (rising momentum), Summer (peak themes), Fall (integration and resolution)\n'
+            f'- Use only 3–4 randomly selected THEMES and 3–4 randomly selected FOCUS AREAS from the lists provided\n\n'
             f'OUTPUT RULES:\n'
-            f'- 5 to 7 sentences\n'
-            f'- Cover the arc of the full year with early/mid/late year themes\n'
-            f'- Address love, career, and personal evolution\n'
+            f'- 8 to 12 sentences\n'
+            f'- Clearly reference seasonal phases (Winter, Spring, Summer, Fall)\n'
+            f'- Address love, career, and personal evolution using the selected themes and focus areas\n'
             f'- End with an empowering statement about what this year means for the sign\n'
             f'- Return only the overview paragraph, nothing else'
         )
-
+    
         text = self._call_api(system, user, max_tokens=500)
         if not text:
             return None
-
+    
         return {
             'overview': text,
             'year': year,
             'generated_at': datetime.now().isoformat()
         }
+
